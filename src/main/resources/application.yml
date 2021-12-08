@@ -1,0 +1,12 @@
+spring:
+  kafka:
+    security:
+      protocol: "SSL"
+    bootstrap-servers: localhost:9093
+    ssl:
+      trust-store-location: classpath:/client-certs/kafka.client.truststore.jks
+      trust-store-password: keypass1
+      key-store-location:  classpath:/client-certs/kafka.client.keystore.jks
+      key-store-password: keypass1
+    consumer:
+      group-id: Group-1
