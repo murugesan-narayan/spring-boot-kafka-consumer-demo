@@ -1,0 +1,306 @@
+Ref: https://kafka.apache.org/documentation/#security_ssl_key
+
+
+1.1 Without Host name verification
+	keytool -keystore kafka.server.keystore.jks -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12
+
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ ./keytool.exe -keystore ../../kafka_2.13-2.8.1/ssl/kafka.server.keystore.jks -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12
+	Enter keystore password:
+	Re-enter new password:
+	They don't match. Try again
+	Enter keystore password:
+	Re-enter new password:
+	What is your first and last name?
+	  [Unknown]:  localhost
+	What is the name of your organizational unit?
+	  [Unknown]:  muru-groups
+	What is the name of your organization?
+	  [Unknown]:  muru-groups
+	What is the name of your City or Locality?
+	  [Unknown]:  berlin
+	What is the name of your State or Province?
+	  [Unknown]:  berlin
+	What is the two-letter country code for this unit?
+	  [Unknown]:  DE
+	Is CN=localhost, OU=muru-groups, O=muru-groups, L=berlin, ST=berlin, C=DE correct?
+	  [no]:  yes
+
+	Generating 2.048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 365 days
+			for: CN=localhost, OU=muru-groups, O=muru-groups, L=berlin, ST=berlin, C=DE
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ ls ../../kafka_2.13-2.8.1/ssl
+	kafka.server.keystore.jks
+
+
+1.2. With Host name verification
+	keytool -keystore server.keystore.jks -alias localhost -validity {validity} -genkey -keyalg RSA -destkeystoretype pkcs12 -ext SAN=DNS:{FQDN},IP:{IPADDRESS1}
+
+	keytool -keystore ../../kafka_2.13-2.8.1/ssl/kafka.server.keystore.jks -alias localhost -validity 365 -genkey -keyalg RSA -destkeystoretype pkcs12 -ext SAN=DNS:DESKTOP-FQPC1CG,IP:127.0.0.1
+
+	Result:
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ ./keytool -keystore ../../kafka_2.13-2.8.1/ssl/kafka.server.keystore.jks -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12 -ext SAN=DNS:DESKTOP-FQPC1CG,IP:127.0.0.1
+	Enter keystore password:
+	What is your first and last name?
+	  [Unknown]:  localhost
+	What is the name of your organizational unit?
+	  [Unknown]:  muru
+	What is the name of your organization?
+	  [Unknown]:  mg
+	What is the name of your City or Locality?
+	  [Unknown]:  berlin
+	What is the name of your State or Province?
+	  [Unknown]:  berlin
+	What is the two-letter country code for this unit?
+	  [Unknown]:  DE
+	Is CN=localhost, OU=muru, O=mg, L=berlin, ST=berlin, C=DE correct?
+	  [no]:  yes
+
+	Generating 2.048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 365 days
+			for: CN=localhost, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ ls -lrt ../../kafka_2.13-2.8.1/ssl/kafka.server.keystore.jks
+	-rwxrwxr-x+ 1 Murugaiya None 2766 Dec  8 01:32 ../../kafka_2.13-2.8.1/ssl/kafka.server.keystore.jks
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+
+
+2. The CA is simply a public/private key pair and certificate that is signed by itself,
+and is only intended to sign other certificates.
+
+> openssl req -x509 -config openssl-ca.cnf -newkey rsa:4096 -sha256 -nodes -out cacert.pem -outform PEM
+
+Result:
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ openssl req -x509 -config ../../kafka_2.13-2.8.1/ssl/openssl-ca.cnf -newkey rsa:4096 -sha256 -nodes -out ../../kafka_2.13-2.8.1/ssl/cacert.pem -outform PEM
+	Generating a RSA private key
+	....................................................................++++
+	.....................++++
+	writing new private key to 'cakey.pem'
+	-----
+	You are about to be asked to enter information that will be incorporated
+	into your certificate request.
+	What you are about to enter is what is called a Distinguished Name or a DN.
+	There are quite a few fields but you can leave some blank
+	For some fields there will be a default value,
+	If you enter '.', the field will be left blank.
+	-----
+	Country Name (2 letter code) [DE]:DE
+	State or Province Name (full name) [Test Province]:berlin
+	Locality Name (eg, city) [Test Town]:berlin
+	Organization Name (eg, company) [Test Company]:mg
+	Organizational Unit (eg, division) [Test Unit]:muru
+	Common Name (e.g. server FQDN or YOUR name) [Test Name]:DESKTOP-FQPC1CG
+	Email Address [test@test.com]:murugesan.narayan@gmail.com
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+
+
+3. Add the generated CA to the **clients' truststore** so that the clients can trust this CA
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ ./keytool -keystore ../../kafka_2.13-2.8.1/ssl/client.truststore.jks -alias CARoot -import -file ../../kafka_2.13-2.8.1/ssl/cacert.pem
+	Enter keystore password:
+	Re-enter new password:
+	Owner: EMAILADDRESS=murugesan.narayan@gmail.com, CN=DESKTOP-FQPC1CG, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+	Issuer: EMAILADDRESS=murugesan.narayan@gmail.com, CN=DESKTOP-FQPC1CG, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+	Serial number: 72e20864819625eb6b8eaa73f64f497224b31e12
+	Valid from: Wed Dec 08 01:53:51 CET 2021 until: Fri Jan 07 01:53:51 CET 2022
+	Certificate fingerprints:
+			 SHA1: 02:A9:E3:CE:69:54:67:E3:5F:BD:F5:99:A8:CB:C4:F4:B0:A3:F2:7F
+			 SHA256: 35:C7:F2:7A:73:1D:7D:27:B0:75:C0:D5:54:E8:3C:59:00:97:1F:3D:D1:09:5A:86:03:01:91:DD:B9:90:E3:1F
+	Signature algorithm name: SHA256withRSA
+	Subject Public Key Algorithm: 4096-bit RSA key
+	Version: 3
+
+	Extensions:
+
+	#1: ObjectId: 2.5.29.35 Criticality=false
+	AuthorityKeyIdentifier [
+	KeyIdentifier [
+	0000: 57 8F 68 22 76 90 18 70   C1 12 D1 AF DB 57 2E 20  W.h"v..p.....W.
+	0010: 78 CB F1 DE                                        x...
+	]
+	]
+
+	#2: ObjectId: 2.5.29.19 Criticality=true
+	BasicConstraints:[
+	  CA:true
+	  PathLen: no limit
+	]
+
+	#3: ObjectId: 2.5.29.15 Criticality=false
+	KeyUsage [
+	  Key_CertSign
+	  Crl_Sign
+	]
+
+	#4: ObjectId: 2.5.29.14 Criticality=false
+	SubjectKeyIdentifier [
+	KeyIdentifier [
+	0000: 57 8F 68 22 76 90 18 70   C1 12 D1 AF DB 57 2E 20  W.h"v..p.....W.
+	0010: 78 CB F1 DE                                        x...
+	]
+	]
+
+	Trust this certificate? [no]:  yes
+	Certificate was added to keystore
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+
+4. add the generated CA to the truststore of the Kafka brokers
+	If you configure the Kafka brokers to require client authentication by setting
+	ssl.client.auth to be "requested" or "required" in the Kafka brokers config then
+	you must provide a truststore for the Kafka brokers as well and
+	it should have all the CA certificates that clients' keys were signed by.
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+	$ ./keytool -keystore ../../kafka_2.13-2.8.1/ssl/server.truststore.jks -alias CARoot -import -file ../../kafka_2.13-2.8.1/ssl/cacert.pem
+	Enter keystore password:
+	Re-enter new password:
+	Owner: EMAILADDRESS=murugesan.narayan@gmail.com, CN=DESKTOP-FQPC1CG, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+	Issuer: EMAILADDRESS=murugesan.narayan@gmail.com, CN=DESKTOP-FQPC1CG, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+	Serial number: 72e20864819625eb6b8eaa73f64f497224b31e12
+	Valid from: Wed Dec 08 01:53:51 CET 2021 until: Fri Jan 07 01:53:51 CET 2022
+	Certificate fingerprints:
+			 SHA1: 02:A9:E3:CE:69:54:67:E3:5F:BD:F5:99:A8:CB:C4:F4:B0:A3:F2:7F
+			 SHA256: 35:C7:F2:7A:73:1D:7D:27:B0:75:C0:D5:54:E8:3C:59:00:97:1F:3D:D1:09:5A:86:03:01:91:DD:B9:90:E3:1F
+	Signature algorithm name: SHA256withRSA
+	Subject Public Key Algorithm: 4096-bit RSA key
+	Version: 3
+
+	Extensions:
+
+	#1: ObjectId: 2.5.29.35 Criticality=false
+	AuthorityKeyIdentifier [
+	KeyIdentifier [
+	0000: 57 8F 68 22 76 90 18 70   C1 12 D1 AF DB 57 2E 20  W.h"v..p.....W.
+	0010: 78 CB F1 DE                                        x...
+	]
+	]
+
+	#2: ObjectId: 2.5.29.19 Criticality=true
+	BasicConstraints:[
+	  CA:true
+	  PathLen: no limit
+	]
+
+	#3: ObjectId: 2.5.29.15 Criticality=false
+	KeyUsage [
+	  Key_CertSign
+	  Crl_Sign
+	]
+
+	#4: ObjectId: 2.5.29.14 Criticality=false
+	SubjectKeyIdentifier [
+	KeyIdentifier [
+	0000: 57 8F 68 22 76 90 18 70   C1 12 D1 AF DB 57 2E 20  W.h"v..p.....W.
+	0010: 78 CB F1 DE                                        x...
+	]
+	]
+
+	Trust this certificate? [no]:  yes
+	Certificate was added to keystore
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/jdk-17.0.1/bin
+
+
+5. To sign it with the CA
+	openssl ca -config openssl-ca.cnf -policy signing_policy -extensions signing_req -out {server certificate} -infiles {certificate signing request}
+
+	---not working  openssl ca -config ../../kafka_2.13-2.8.1/ssl/openssl-ca.cnf -policy signing_policy -extensions signing_req -out ../../kafka_2.13-2.8.1/ssl/servercert.pem -infiles ../../kafka_2.13-2.8.1/ssl/servercert.csr
+
+	/cygdrive/c/muru/sw/jdk-17.0.1/bin/keytool -keystore kafka.server.keystore.jks -alias localhost -certreq -file cert-file
+
+Result
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
+	$ /cygdrive/c/muru/sw/jdk-17.0.1/bin/keytool -keystore kafka.server.keystore.jks -alias localhost -certreq -file cert-file
+	Enter keystore password:
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
+
+
+	$ openssl x509 -req -CA cacert.pem -CAkey cakey.pem -in cert-file -out cert-signed -days 365 -CAcreateserial
+Result:
+	Signature ok
+	subject=C = DE, ST = berlin, L = berlin, O = mg, OU = muru, CN = localhost
+	Getting CA Private Key
+
+	Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
+
+6. import both the certificate of the CA and the signed certificate into the keystore
+	> keytool -keystore {keystore} -alias CARoot -import -file {CA certificate}
+	> keytool -keystore {keystore} -alias localhost -import -file cert-signed
+
+	/cygdrive/c/muru/sw/jdk-17.0.1/bin/keytool -keystore kafka.server.keystore.jks -alias CARoot -import -file cacert.pem
+
+	Result
+
+			Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
+		$ /cygdrive/c/muru/sw/jdk-17.0.1/bin/keytool -keystore kafka.server.keystore.jks -alias CARoot -import -file cacert.pem
+		Enter keystore password:
+		Owner: EMAILADDRESS=murugesan.narayan@gmail.com, CN=DESKTOP-FQPC1CG, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+		Issuer: EMAILADDRESS=murugesan.narayan@gmail.com, CN=DESKTOP-FQPC1CG, OU=muru, O=mg, L=berlin, ST=berlin, C=DE
+		Serial number: 72e20864819625eb6b8eaa73f64f497224b31e12
+		Valid from: Wed Dec 08 01:53:51 CET 2021 until: Fri Jan 07 01:53:51 CET 2022
+		Certificate fingerprints:
+				 SHA1: 02:A9:E3:CE:69:54:67:E3:5F:BD:F5:99:A8:CB:C4:F4:B0:A3:F2:7F
+				 SHA256: 35:C7:F2:7A:73:1D:7D:27:B0:75:C0:D5:54:E8:3C:59:00:97:1F:3D:D1:09:5A:86:03:01:91:DD:B9:90:E3:1F
+		Signature algorithm name: SHA256withRSA
+		Subject Public Key Algorithm: 4096-bit RSA key
+		Version: 3
+
+		Extensions:
+
+		#1: ObjectId: 2.5.29.35 Criticality=false
+		AuthorityKeyIdentifier [
+		KeyIdentifier [
+		0000: 57 8F 68 22 76 90 18 70   C1 12 D1 AF DB 57 2E 20  W.h"v..p.....W.
+		0010: 78 CB F1 DE                                        x...
+		]
+		]
+
+		#2: ObjectId: 2.5.29.19 Criticality=true
+		BasicConstraints:[
+		  CA:true
+		  PathLen: no limit
+		]
+
+		#3: ObjectId: 2.5.29.15 Criticality=false
+		KeyUsage [
+		  Key_CertSign
+		  Crl_Sign
+		]
+
+		#4: ObjectId: 2.5.29.14 Criticality=false
+		SubjectKeyIdentifier [
+		KeyIdentifier [
+		0000: 57 8F 68 22 76 90 18 70   C1 12 D1 AF DB 57 2E 20  W.h"v..p.....W.
+		0010: 78 CB F1 DE                                        x...
+		]
+		]
+
+		Trust this certificate? [no]:  yes
+		Certificate was added to keystore
+
+		Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
+
+
+
+
+	/cygdrive/c/muru/sw/jdk-17.0.1/bin/keytool -keystore kafka.server.keystore.jks -alias localhost -import -file cert-signed
+
+	Result:
+
+		Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
+		$ /cygdrive/c/muru/sw/jdk-17.0.1/bin/keytool -keystore kafka.server.keystore.jks -alias localhost -import -file cert-signed
+		Enter keystore password:
+		Certificate reply was installed in keystore
+
+		Murugaiya@DESKTOP-FQPC1CG /cygdrive/c/muru/sw/kafka_2.13-2.8.1/ssl
