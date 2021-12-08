@@ -35,6 +35,8 @@ Download Kafka binaries from [Apache Kafka](https://kafka.apache.org/downloads)
 6. SSL
 
     If security is enabled, please verify if the correct port, truststore and keystore are used.
+ 
+[SSL Setup Doc](https://kafka.apache.org/documentation/#security_ssl_key)
 
 ### Build and Run
 ```bash
